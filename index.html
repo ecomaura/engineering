@@ -450,10 +450,23 @@
         // 5. Initialize Editor
         const editableHtml = document.getElementById('editable-region').innerHTML;
         
+        // GRAB ALL EXISTING CSS FROM THE HEAD
+        let pageStyles = "";
+        document.querySelectorAll("style").forEach(styleTag => {
+            pageStyles += styleTag.innerHTML;
+        });
+        
         editorInstance = grapesjs.init({
             container: '#gjs-container',
             fromElement: false,
             components: editableHtml,
+            style: pageStyles, // <-- INJECTS YOUR CSS INTO THE PREVIEW
+            canvas: {
+                styles: [
+                    // <-- INJECTS YOUR GOOGLE FONTS INTO THE PREVIEW
+                    'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Montserrat:wght@500;600;700;800&display=swap'
+                ]
+            },
             plugins: ['gjs-preset-webpage'],
             storageManager: { type: false },
             assetManager: {
