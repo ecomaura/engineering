@@ -1694,8 +1694,9 @@ const MAX_HISTORY = 50;
 function pushHistorySnapshot() {
     const app = document.getElementById('app');
     if (!app) return;
-    const snapshot = app.innerHTML;
-    if (historyStack[historyIndex] === snapshot) return;
+    const snapshot = { html: app.innerHTML, hash: location.hash || '#home' };
+    const last = historyStack[historyIndex];
+    if (last && last.html === snapshot.html && last.hash === snapshot.hash) return;
     historyStack = historyStack.slice(0, historyIndex + 1);
     historyStack.push(snapshot);
     if (historyStack.length > MAX_HISTORY) historyStack.shift();
@@ -1707,11 +1708,22 @@ function scheduleHistorySnapshot() {
     clearTimeout(historyTimer);
     historyTimer = setTimeout(pushHistorySnapshot, 400);
 }
+        function applyActiveForHash(hash) {
+    const id = (hash || '#home').replace('#', '');
+    $$('.page').forEach(p => p.classList.toggle('active', p.id === id));
+    $$('.nav-links a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+}
 
 function restoreHistory(index) {
     const app = document.getElementById('app');
     if (!app || index < 0 || index >= historyStack.length) return;
-    app.innerHTML = historyStack[index];
+    const entry = historyStack[index];
+    app.innerHTML = entry.html;
+    if (location.hash !== entry.hash) {
+        location.hash = entry.hash; // triggers the site's own handleRoute() via hashchange
+    } else {
+        applyActiveForHash(entry.hash); // hash unchanged, so no event fires — sync manually
+    }
     historyIndex = index;
     initAdminFeatures(app);
     populatePageSwitcher();
