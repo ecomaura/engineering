@@ -1233,6 +1233,7 @@
         <button id="admDownloadBtn">Download HTML</button>
         <button id="admCommitBtn" class="adm-primary">Commit to GitHub</button>
         <span id="admStatus">Unsaved changes — click "Commit to GitHub" to publish.</span>
+        <select id="admPageSwitch" style="background:#172A45;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:6px 8px;font-size:12.5px;"></select>
         <button id="admCloseBtn" title="Hide panel">✕</button>
     </div>
 
@@ -1296,11 +1297,30 @@
                 alert('Incorrect passphrase.');
             }
         });
+        function populatePageSwitcher() {
+    const select = $('#admPageSwitch');
+    const allPages = $$('.page');
+    select.innerHTML = allPages.map(p => {
+        const label = p.querySelector('h1')?.textContent.trim() || p.id;
+        return `<option value="${p.id}">${label}</option>`;
+    }).join('');
+    select.value = (location.hash || '#home').replace('#', '');
+}
+
+$('#admPageSwitch').addEventListener('change', (e) => {
+    location.hash = '#' + e.target.value;
+});
+
+window.addEventListener('hashchange', () => {
+    const select = $('#admPageSwitch');
+    if (select) select.value = (location.hash || '#home').replace('#', '');
+});
 
         function openPanel() {
-            gear.classList.add('adm-hidden');
-            panel.classList.remove('adm-hidden');
-        }
+    gear.classList.add('adm-hidden');
+    panel.classList.remove('adm-hidden');
+    populatePageSwitcher();
+}
         $('#admCloseBtn').addEventListener('click', () => {
             panel.classList.add('adm-hidden');
             gear.classList.remove('adm-hidden');
@@ -1466,16 +1486,17 @@
         }
 
         toggleBtn.addEventListener('click', () => {
-            editOn = !editOn;
-            document.body.classList.toggle('adm-edit', editOn);
-            toggleBtn.textContent = 'Edit Mode: ' + (editOn ? 'On' : 'Off');
-            if (editOn) {
-                initAdminFeatures(document);
-                setStatus('Editing — click text to type, hover blocks/images for controls.');
-            } else {
-                setStatus(dirty ? 'Unsaved changes.' : 'Not editing');
-            }
-        });
+    editOn = !editOn;
+    document.body.classList.toggle('adm-edit', editOn);
+    toggleBtn.textContent = 'Edit Mode: ' + (editOn ? 'On' : 'Off');
+    if (editOn) {
+        initAdminFeatures(document);
+        setStatus('Editing — click text to type, hover blocks/images for controls.');
+    } else {
+        setStatus(dirty ? 'Unsaved changes.' : 'Not editing');
+    }
+    populatePageSwitcher();
+});
 
         /* ---------- dirty state ---------- */
         let dirty = false;
