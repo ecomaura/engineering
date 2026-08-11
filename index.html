@@ -1154,6 +1154,8 @@
             cursor: pointer;
             white-space: nowrap;
         }
+        #admPanel button:disabled { opacity: .35; cursor: not-allowed; }
+#admPanel button:disabled:hover { background: #172A45; }
         #admPanel button:hover { background: #FF6B00; }
         #admPanel button.adm-primary { background: #FF6B00; }
         #admPanel button.adm-primary:hover { background: #E65A00; }
@@ -1249,6 +1251,8 @@
 
     <div id="admPanel" class="adm-hidden">
         <button id="admToggleEdit">Edit Mode: On</button>
+        <button id="admUndoBtn" title="Undo" disabled>↺ Undo</button>
+<button id="admRedoBtn" title="Redo" disabled>↻ Redo</button>
         <button id="admSettingsBtn">Settings</button>
         <button id="admThemeBtn">Theme</button>
         <button id="admDownloadBtn">Download HTML</button>
@@ -1546,21 +1550,61 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
                 const bar = document.createElement('div');
                 bar.className = 'adm-block-toolbar';
                 bar.innerHTML = `
-                    <button type="button" class="adm-dup" title="Duplicate">⧉</button>
-                    <button type="button" class="adm-up" title="Move up">↑</button>
-                    <button type="button" class="adm-down" title="Move down">↓</button>
-                    <button type="button" class="adm-del" title="Delete">✕</button>`;
+    <button type="button" class="adm-dup" title="Duplicate">⧉</button>
+    <button type="button" class="adm-up" title="Move up">↑</button>
+    <button type="button" class="adm-down" title="Move down">↓</button>
+    <button type="button" class="adm-code" title="Edit code">&lt;/&gt;</button>
+    <button type="button" class="adm-del" title="Delete">✕</button>`;
                 el.insertBefore(bar, el.firstChild);
 
                 bar.querySelector('.adm-dup').onclick = (e) => { e.preventDefault(); duplicateBlock(el); };
                 bar.querySelector('.adm-up').onclick   = (e) => { e.preventDefault(); moveBlock(el, 'up'); };
                 bar.querySelector('.adm-down').onclick = (e) => { e.preventDefault(); moveBlock(el, 'down'); };
+                bar.querySelector('.adm-code').onclick = (e) => { e.preventDefault(); openBlockCodeEditor(el); };
                 bar.querySelector('.adm-del').onclick  = (e) => {
                     e.preventDefault();
                     if (confirm('Delete this block?')) { el.remove(); markDirty(); }
+                    
                 };
             });
         }
+        function openBlockCodeEditor(el) {
+    const overlay = document.createElement('div');
+    overlay.className = 'adm-modal-overlay';
+    const clean = el.cloneNode(true);
+    $$('.adm-block-toolbar, .adm-img-btn', clean).forEach(n => n.remove());
+    $$('.adm-img-wrap', clean).forEach(w => {
+        const inner = w.querySelector('img') || w.querySelector('[style*="background-image"]') || w.firstElementChild;
+        if (inner) w.replaceWith(inner); else w.remove();
+    });
+
+    overlay.innerHTML = `
+        <div class="adm-modal" style="max-width:640px;">
+            <h3>Edit Block Code</h3>
+            <p class="adm-note">Edit the raw HTML for this block. Invalid HTML may break the layout.</p>
+            <textarea id="adm_code_textarea" style="width:100%;min-height:280px;font-family:monospace;font-size:12.5px;padding:10px;border:1px solid #D1D5DB;border-radius:5px;"></textarea>
+            <div class="adm-modal-actions">
+                <button class="adm-btn-cancel" id="code_cancel">Cancel</button>
+                <button class="adm-btn-save" id="code_apply">Apply</button>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+    $('#adm_code_textarea', overlay).value = clean.outerHTML;
+
+    $('#code_cancel', overlay).onclick = () => overlay.remove();
+    $('#code_apply', overlay).onclick = () => {
+        const newHTML = $('#adm_code_textarea', overlay).value.trim();
+        if (!newHTML) { alert('Block content can\'t be empty.'); return; }
+        const temp = document.createElement('div');
+        temp.innerHTML = newHTML;
+        const newEl = temp.firstElementChild;
+        if (!newEl) { alert('Couldn\'t parse that HTML.'); return; }
+        el.replaceWith(newEl);
+        initAdminFeatures(newEl.parentNode);
+        markDirty();
+        overlay.remove();
+    };
+}
 
         function duplicateBlock(el) {
             const clone = el.cloneNode(true);
@@ -1637,9 +1681,54 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
         /* ---------- dirty state ---------- */
         let dirty = false;
         function markDirty() {
-            dirty = true;
-            setStatus('Unsaved changes — click "Commit to GitHub" to publish.');
-        }
+    dirty = true;
+    setStatus('Unsaved changes — click "Commit to GitHub" to publish.');
+    scheduleHistorySnapshot();
+}
+
+        let historyStack = [];
+let historyIndex = -1;
+let historyTimer = null;
+const MAX_HISTORY = 50;
+
+function pushHistorySnapshot() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    const snapshot = app.innerHTML;
+    if (historyStack[historyIndex] === snapshot) return;
+    historyStack = historyStack.slice(0, historyIndex + 1);
+    historyStack.push(snapshot);
+    if (historyStack.length > MAX_HISTORY) historyStack.shift();
+    historyIndex = historyStack.length - 1;
+    updateUndoRedoButtons();
+}
+
+function scheduleHistorySnapshot() {
+    clearTimeout(historyTimer);
+    historyTimer = setTimeout(pushHistorySnapshot, 400);
+}
+
+function restoreHistory(index) {
+    const app = document.getElementById('app');
+    if (!app || index < 0 || index >= historyStack.length) return;
+    app.innerHTML = historyStack[index];
+    historyIndex = index;
+    initAdminFeatures(app);
+    populatePageSwitcher();
+    updateUndoRedoButtons();
+    setStatus('Restored.');
+}
+
+function undo() { if (historyIndex > 0) restoreHistory(historyIndex - 1); }
+function redo() { if (historyIndex < historyStack.length - 1) restoreHistory(historyIndex + 1); }
+
+function updateUndoRedoButtons() {
+    $('#admUndoBtn').disabled = historyIndex <= 0;
+    $('#admRedoBtn').disabled = historyIndex >= historyStack.length - 1;
+}
+
+$('#admUndoBtn').addEventListener('click', undo);
+$('#admRedoBtn').addEventListener('click', redo);
 
         /* ---------- Cloudinary image swap ---------- */
         let cloudinaryLoaded = false;
@@ -1772,6 +1861,7 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
         });
 
         /* ---------- warn before leaving with unsaved changes ---------- */
+        pushHistorySnapshot();
         window.addEventListener('beforeunload', (e) => {
             if (dirty) { e.preventDefault(); e.returnValue = ''; }
         });
