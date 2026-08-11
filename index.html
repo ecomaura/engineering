@@ -1209,18 +1209,19 @@
         /* Image swap overlay */
         .adm-img-wrap { position: relative; }
         .adm-img-btn {
-            display: none;
-            position: absolute;
-            top: 8px; right: 8px;
-            z-index: 50;
-            background: rgba(10,25,47,.85);
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            padding: 6px 10px;
-            font-size: 12px;
-            cursor: pointer;
-        }
+    display: none;
+    position: absolute;
+    bottom: 8px;   /* was: top: 8px */
+    right: 8px;
+    z-index: 50;
+    background: rgba(10,25,47,.85);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
         .adm-img-btn:hover { background: #FF6B00; }
         body.adm-edit .adm-img-wrap:hover .adm-img-btn { display: block; }
     </style>
