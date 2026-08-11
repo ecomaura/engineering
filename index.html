@@ -465,6 +465,14 @@
             pageStyles += styleTag.innerHTML;
         });
         
+        // FORCE ANIMATED ELEMENTS TO BE VISIBLE INSIDE THE EDITOR
+        pageStyles += `
+            .reveal { 
+                opacity: 1 !important; 
+                transform: translateY(0) !important; 
+            }
+        `;
+        
         editorInstance = grapesjs.init({
             container: '#gjs-container',
             fromElement: false,
