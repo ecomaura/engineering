@@ -1255,6 +1255,7 @@
         <button id="admCommitBtn" class="adm-primary">Commit to GitHub</button>
         <span id="admStatus">Unsaved changes — click "Commit to GitHub" to publish.</span>
         <select id="admPageSwitch" style="background:#172A45;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:6px 8px;font-size:12.5px;"><option value="home">Engineering Solutions Built for Reliability</option><option value="about">About Us</option><option value="services">Our Services</option><option value="electrical">Electrical Control Panel Solutions</option><option value="stabilizer">Servo Stabilizer Services</option><option value="dg">DG Installation &amp; Maintenance</option><option value="industries">Industries We Serve</option><option value="maintenance">Maintenance Solutions</option><option value="quality">Safety &amp; Quality Control</option><option value="contact">Contact Us</option><option value="quote">Request a Quotation</option></select>
+        <button id="admDeletePageBtn" title="Delete current page">Delete Page</button>
         <button id="admCloseBtn" title="Hide panel">✕</button>
     </div>
 
@@ -1337,6 +1338,32 @@ $('#admPageSwitch').addEventListener('change', (e) => {
 window.addEventListener('hashchange', () => {
     const select = $('#admPageSwitch');
     if (select) select.value = (location.hash || '#home').replace('#', '');
+});
+
+/* ---------- delete page ---------- */
+$('#admDeletePageBtn').addEventListener('click', () => {
+    const currentId = (location.hash || '#home').replace('#', '');
+
+    if (currentId === 'home') {
+        alert('The Home page can\'t be deleted.');
+        return;
+    }
+
+    const targetPage = document.getElementById(currentId);
+    if (!targetPage) return;
+
+    const label = targetPage.querySelector('h1')?.textContent.trim() || currentId;
+    if (!confirm(`Delete the "${label}" page? This can't be undone until you reload without committing.`)) {
+        return;
+    }
+
+    targetPage.remove();
+    $$(`a[href="#${currentId}"]`).forEach(link => link.remove());
+    $$(`.sidebar-menu a[href="#${currentId}"]`).forEach(link => link.closest('li')?.remove());
+
+    markDirty();
+    populatePageSwitcher();
+    location.hash = '#home';
 });
 
         function openPanel() {
