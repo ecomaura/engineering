@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GrapesJS + Cloudinary + GitHub Pages Editor</title>
+  
+  <!-- GrapesJS CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+  <script src="https://unpkg.com/grapesjs"></script>
+  
+  <!-- GrapesJS Webpage Preset (Provides blocks, flexbox, etc.) -->
+  <script src="https://unpkg.com/grapesjs-preset-webpage"></script>
+
+  <!-- Octokit (GitHub REST API Client) -->
+  <script type="module">
+    import { Octokit } from "https://esm.sh/@octokit/rest";
+    window.Octokit = Octokit;
+  </script>
+
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    #gjs { height: 100vh; }
+    
+    /* Config Panel styling */
+    .admin-bar {
+      position: fixed;
+      top: 10px;
+      right: 15px;
+      z-index: 9999;
+      display: flex;
+      gap: 10px;
+    }
+    .admin-btn {
+      background: #FF6B00;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Admin Controls -->
+  <div class="admin-bar">
+    <button class="admin-btn" onclick="saveToGitHub()">🚀 Commit & Deploy to GitHub</button>
+  </div>
+
+  <!-- Editor Container -->
+  <div id="gjs"></div>
+
+  <script>
+    // ==========================================
+    // 1. CONFIGURATION SETTINGS
+    // ==========================================
+    const CONFIG = {
+      // GitHub Repo Info
+      ghOwner: "YOUR_GITHUB_USERNAME",
+      ghRepo: "YOUR_REPO_NAME",
+      ghBranch: "main",
+      ghFilePath: "index.html",
+
+      // Cloudinary Info
+      cloudName: "YOUR_CLOUDINARY_CLOUD_NAME",
+      unsignedPreset: "YOUR_UNSIGNED_PRESET_NAME"
+    };
+
+    // Prompt for PAT if not stored locally
+    let ghToken = localStorage.getItem("GH_PAT");
+    if (!ghToken) {
+      ghToken = prompt("Enter your GitHub Personal Access Token (PAT) with repo contents permission:");
+      if (ghToken) localStorage.setItem("GH_PAT", ghToken);
+    }
+
+    // ==========================================
+    // 2. INITIALIZE GRAPESJS
+    // ==========================================
+    const editor = grapesjs.init({
+      container: '#gjs',
+      height: '100vh',
+      fromElement: true,
+      plugins: ['gjs-preset-webpage'],
+      pluginsOpts: {
+        'gjs-preset-webpage': {}
+      },
+      // Disable default local storage persistence so it loads fresh from server
+      storageManager: { type: false },
+      
+      // ==========================================
+      // 3. INTEGRATE CLOUDINARY UPLOAD
+      // ==========================================
+      assetManager: {
+        uploadName: 'file',
+        // Intercept upload to push to Cloudinary directly
+        uploadFile: async function(e) {
+          const files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+          const formData = new FormData();
+
+          for (let file of files) {
+            formData.append('file', file);
+            formData.append('upload_preset', CONFIG.unsignedPreset);
+
+            try {
+              const res = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudName}/image/upload`, {
+                method: 'POST',
+                body: formData
+              });
+              const data = await res.json();
+
+              if (data.secure_url) {
+                // Add the Cloudinary URL to GrapesJS Asset Manager
+                editor.AssetManager.add(data.secure_url);
+              }
+            } catch (err) {
+              console.error('Cloudinary Upload Failed:', err);
+              alert('Image upload failed.');
+            }
+          }
+        }
+      }
+    });
+
+    // ==========================================
+    // 4. AUTOMATED COMMIT TO GITHUB
+    // ==========================================
+    async function saveToGitHub() {
+      if (!ghToken) {
+        alert("GitHub Token required!");
+        return;
+      }
+
+      const octokit = new window.Octokit({ auth: ghToken });
+      const button = document.querySelector('.admin-btn');
+      button.innerText = "⏳ Committing to GitHub...";
+      button.disabled = true;
+
+      try {
+        // Step A: Get HTML and CSS from GrapesJS
+        const html = editor.getHtml();
+        const css = editor.getCss();
+
+        // Build full HTML file
+        const fullContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Title</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+</body>
+</html>`;
+
+        // Step B: Get current file's SHA from GitHub API (required for updating)
+        let fileSha = null;
+        try {
+          const { data } = await octokit.rest.repos.getContent({
+            owner: CONFIG.ghOwner,
+            repo: CONFIG.ghRepo,
+            path: CONFIG.ghFilePath,
+            ref: CONFIG.ghBranch,
+          });
+          fileSha = data.sha;
+        } catch (e) {
+          console.log("File does not exist yet; creating a new file.");
+        }
+
+        // Step C: Commit update via GitHub API
+        // UTF-8 to Base64 encoder
+        const base64Content = btoa(unescape(encodeURIComponent(fullContent)));
+
+        const response = await octokit.rest.repos.createOrUpdateFileContents({
+          owner: CONFIG.ghOwner,
+          repo: CONFIG.ghRepo,
+          path: CONFIG.ghFilePath,
+          message: `CMS Update: ${new Date().toLocaleString()}`,
+          content: base64Content,
+          sha: fileSha,
+          branch: CONFIG.ghBranch
+        });
+
+        alert("✅ Changes successfully committed! GitHub Pages will rebuild and go live in 1–2 minutes.");
+      } catch (err) {
+        console.error("GitHub Commit Error:", err);
+        alert("Failed to commit changes: " + err.message);
+      } finally {
+        button.innerText = "🚀 Commit & Deploy to GitHub";
+        button.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
