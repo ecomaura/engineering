@@ -328,6 +328,15 @@
 <!-- GrapesJS Editor Elements (Hidden normally)     -->
 <!-- ============================================== -->
 <div id="admin-panel">
+    <!-- ADD THIS PAGE SELECTOR -->
+    <select id="editor-page-selector" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
+        <option value="home">Home Page</option>
+        <option value="about">About Page</option>
+        <option value="services">Services Page</option>
+        <option value="contact">Contact Page</option>
+        <option value="quote">Quote Page</option>
+    </select>
+
     <button class="btn btn-primary" id="save-gh-btn">🚀 Commit & Deploy</button>
     <button class="btn btn-outline" id="close-admin-btn">Exit Admin</button>
 </div>
@@ -487,6 +496,25 @@
                     }
                 }
             }
+        });
+
+        editorInstance.on('load', () => {
+            document.getElementById('editor-page-selector').addEventListener('change', (e) => {
+                const targetId = e.target.value;
+                const wrapper = editorInstance.getWrapper();
+                
+                // 1. Find all pages in the editor canvas and remove the 'active' class
+                const pages = wrapper.find('.page');
+                pages.forEach(page => {
+                    page.removeClass('active');
+                });
+                
+                // 2. Find the selected page and add the 'active' class to reveal it
+                const targetPage = wrapper.find('#' + targetId)[0];
+                if (targetPage) {
+                    targetPage.addClass('active');
+                }
+            });
         });
 
         // 6. Bind Save Button
