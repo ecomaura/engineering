@@ -167,7 +167,11 @@
         .logo-text span { color: var(--accent); }
         
         /* Placeholder for actual logo */
-        .logo-img { height: 40px; display: none; }
+        .logo-img {
+    height: 40px;
+    width: auto;
+    display: block; /* Display this and hide logo-text when real logo is used */
+}
 
         .nav-links {
             display: flex;
@@ -507,9 +511,8 @@
     <nav class="navbar" id="navbar">
         <div class="container nav-container">
             <a href="#home" class="logo-container">
-                <img src="logo-placeholder.png" alt="IndustrialTech Logo" class="logo-img">
-                <div class="logo-text">INDUS<span>TECH</span></div>
-            </a>
+    <img src="YOUR-LOGO-URL-HERE.png" alt="IndustrialTech Logo" class="logo-img">
+</a>
             <div class="nav-links" id="navLinks">
                 <a href="#home" class="active">Home</a>
                 <a href="#about">About</a>
@@ -906,9 +909,9 @@
         <div class="container">
             <div class="footer-grid">
                 <div class="footer-col">
-                    <div class="logo-text mb-1">INDUS<span>TECH</span></div>
-                    <p style="color: var(--text-light); font-size: 0.9rem;">Professional engineering partner for critical industrial systems.</p>
-                </div>
+    <img src="YOUR-LOGO-URL-HERE.png" alt="IndustrialTech Logo" class="logo-img mb-1">
+    <p style="color: var(--text-light); font-size: 0.9rem;">Professional engineering partner for critical industrial systems.</p>
+</div>
                 <div class="footer-col">
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
@@ -1231,6 +1234,7 @@
     <div id="admPanel" class="adm-hidden">
         <button id="admToggleEdit">Edit Mode: On</button>
         <button id="admSettingsBtn">Settings</button>
+        <button id="admThemeBtn">Theme</button>
         <button id="admDownloadBtn">Download HTML</button>
         <button id="admCommitBtn" class="adm-primary">Commit to GitHub</button>
         <span id="admStatus">Unsaved changes — click "Commit to GitHub" to publish.</span>
@@ -1282,6 +1286,8 @@
         const params = new URLSearchParams(location.search);
         const wantsAdmin = params.has('admin') || localStorage.getItem('admUnlocked') === '1';
         if (wantsAdmin) gear.classList.remove('adm-hidden');
+        const savedCfg = getConfig();
+if (savedCfg.theme) applyTheme(savedCfg.theme);
 
         gear.addEventListener('click', async () => {
             if (localStorage.getItem('admUnlocked') === '1') {
@@ -1375,6 +1381,92 @@ window.addEventListener('hashchange', () => {
             };
         }
         $('#admSettingsBtn').addEventListener('click', openSettings);
+
+        const THEME_VARS = [
+    { key: '--primary',      label: 'Primary (Navy)' },
+    { key: '--secondary',    label: 'Secondary' },
+    { key: '--accent',       label: 'Accent' },
+    { key: '--accent-hover', label: 'Accent Hover' },
+    { key: '--text-main',    label: 'Body Text' },
+    { key: '--text-light',   label: 'Light Text' },
+    { key: '--bg-light',     label: 'Background (Light)' },
+    { key: '--bg-gray',      label: 'Background (Gray)' }
+];
+
+function getCurrentThemeValues() {
+    const styles = getComputedStyle(document.documentElement);
+    const values = {};
+    THEME_VARS.forEach(v => {
+        values[v.key] = styles.getPropertyValue(v.key).trim() || '#000000';
+    });
+    return values;
+}
+
+function applyTheme(values) {
+    Object.entries(values).forEach(([key, val]) => {
+        document.documentElement.style.setProperty(key, val);
+    });
+}
+
+function openThemeEditor() {
+    const current = getCurrentThemeValues();
+    const overlay = document.createElement('div');
+    overlay.className = 'adm-modal-overlay';
+    overlay.innerHTML = `
+        <div class="adm-modal">
+            <h3>Theme Colors</h3>
+            <p class="adm-note">Changes preview live. Click Save to keep them, or Cancel to revert.</p>
+            ${THEME_VARS.map(v => `
+                <div class="adm-field" style="display:flex;align-items:center;justify-content:space-between;">
+                    <label style="margin-bottom:0;">${v.label}</label>
+                    <input type="color" id="theme_${v.key}" value="${toHex(current[v.key])}" style="width:44px;height:32px;border:none;padding:0;cursor:pointer;">
+                </div>
+            `).join('')}
+            <div class="adm-modal-actions">
+                <button class="adm-btn-cancel" id="theme_cancel">Cancel</button>
+                <button class="adm-btn-save" id="theme_save">Save</button>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+
+    // live preview as user picks colors
+    THEME_VARS.forEach(v => {
+        $('#theme_' + v.key, overlay).addEventListener('input', (e) => {
+            document.documentElement.style.setProperty(v.key, e.target.value);
+        });
+    });
+
+    $('#theme_cancel', overlay).onclick = () => {
+        applyTheme(current); // revert live preview
+        overlay.remove();
+    };
+
+    $('#theme_save', overlay).onclick = () => {
+        const newValues = {};
+        THEME_VARS.forEach(v => {
+            newValues[v.key] = $('#theme_' + v.key, overlay).value;
+        });
+        applyTheme(newValues);
+        const cfg = getConfig();
+        cfg.theme = newValues;
+        saveConfig(cfg);
+        overlay.remove();
+        markDirty();
+        setStatus('Theme updated — commit to save permanently.');
+    };
+}
+
+function toHex(val) {
+    // handles values already in hex; falls back to a canvas trick for named/rgb colors
+    if (/^#[0-9a-f]{3,8}$/i.test(val)) return val.length === 4
+        ? '#' + [...val.slice(1)].map(c => c + c).join('')
+        : val;
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.fillStyle = val;
+    return ctx.fillStyle;
+}
+
+$('#admThemeBtn').addEventListener('click', openThemeEditor);
 
         /* ---------- edit mode ---------- */
         let editOn = false;
