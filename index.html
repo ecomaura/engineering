@@ -1245,6 +1245,23 @@
 }
         .adm-img-btn:hover { background: #FF6B00; }
         body.adm-edit .adm-img-wrap:hover .adm-img-btn { display: block; }
+
+        .adm-link-btn {
+    display: none;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 50;
+    background: rgba(10,25,47,.85);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 11px;
+    cursor: pointer;
+}
+.adm-link-btn:hover { background: #FF6B00; }
+body.adm-edit a[data-adm-link]:hover .adm-link-btn { display: block; }
     </style>
 
     <button id="admGear" class="adm-hidden" title="Admin">⚙</button>
@@ -1644,6 +1661,32 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
                 wrap.appendChild(btn);
             });
 
+            function wrapLinks(root) {
+    $$('a[href]', root || document).forEach(a => {
+        if (a.closest('#admPanel, .adm-modal-overlay')) return;
+        if (a.hasAttribute('data-adm-link')) return; // already wired
+        a.setAttribute('data-adm-link', '1');
+        a.style.position = a.style.position || 'relative';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'adm-link-btn';
+        btn.textContent = '🔗';
+        btn.title = 'Edit link URL';
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const current = a.getAttribute('href') || '';
+            const next = prompt('Link URL (e.g. #quote or https://...)', current);
+            if (next !== null && next.trim() !== '') {
+                a.setAttribute('href', next.trim());
+                markDirty();
+            }
+        };
+        a.appendChild(btn);
+    });
+}
+
             $$('.service-img', root || document).forEach(div => {
                 if (div.closest('.adm-img-wrap')) return;
                 const wrap = document.createElement('div');
@@ -1663,6 +1706,7 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
             makeTextEditable(root);
             attachBlockToolbar(root);
             wrapImages(root);
+            wrapLinks(root); 
         }
 
         toggleBtn.addEventListener('click', () => {
@@ -1790,6 +1834,8 @@ $('#admRedoBtn').addEventListener('click', redo);
             const docClone = document.cloneNode(true);
 
             $$('.adm-block-toolbar, .adm-img-btn', docClone).forEach(n => n.remove());
+            $$('.adm-link-btn', docClone).forEach(n => n.remove());
+$$('[data-adm-link]', docClone).forEach(n => n.removeAttribute('data-adm-link'));
             $$('.adm-img-wrap', docClone).forEach(w => {
                 const inner = w.querySelector('img') || w.querySelector('[style*="background-image"]') || w.firstElementChild;
                 if (inner) w.replaceWith(inner); else w.remove();
