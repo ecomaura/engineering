@@ -1661,7 +1661,23 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
                 wrap.appendChild(btn);
             });
 
-            function wrapLinks(root) {
+            
+            $$('.service-img', root || document).forEach(div => {
+                if (div.closest('.adm-img-wrap')) return;
+                const wrap = document.createElement('div');
+                wrap.className = 'adm-img-wrap';
+                div.parentNode.insertBefore(wrap, div);
+                wrap.appendChild(div);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'adm-img-btn';
+                btn.textContent = '🖼️ Change Image';
+                btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openImagePicker(div, 'bg'); };
+                wrap.appendChild(btn);
+            });
+        }
+
+        function wrapLinks(root) {
     $$('a[href]', root || document).forEach(a => {
         if (a.closest('#admPanel, .adm-modal-overlay')) return;
         if (a.hasAttribute('data-adm-link')) return; // already wired
@@ -1687,20 +1703,6 @@ $('#admThemeBtn').addEventListener('click', openThemeEditor);
     });
 }
 
-            $$('.service-img', root || document).forEach(div => {
-                if (div.closest('.adm-img-wrap')) return;
-                const wrap = document.createElement('div');
-                wrap.className = 'adm-img-wrap';
-                div.parentNode.insertBefore(wrap, div);
-                wrap.appendChild(div);
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'adm-img-btn';
-                btn.textContent = '🖼️ Change Image';
-                btn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openImagePicker(div, 'bg'); };
-                wrap.appendChild(btn);
-            });
-        }
 
         function initAdminFeatures(root) {
             makeTextEditable(root);
