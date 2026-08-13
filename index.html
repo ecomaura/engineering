@@ -1429,41 +1429,23 @@
         @media (max-width: 768px) {
             /* MOBILE MENU FIX */
             .nav-links {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 75vw;
-        height: 100dvh;
-        background: var(--primary);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        gap: 1.5rem;
-
-        transform: translateX(100%);
-        visibility: hidden;
-        opacity: 0;
-        pointer-events: none;
-
-        transition: transform 0.35s ease, opacity 0.35s ease;
-        z-index: 1001;
-    }
-
-   .nav-links.active {
-    transform: translateX(0) !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    z-index: 9998 !important;
-}
-    .hamburger {
-    display: flex !important;
-    position: relative;
-    z-index: 9999 !important;
-    cursor: pointer;
-    pointer-events: auto !important;
-}
+                position: fixed;
+                top: 0;
+                right: 0;
+                transform: translateX(100%); /* Moves menu completely off-screen safely */
+                width: 75vw; /* Max width constraint */
+                height: 100vh;
+                background: var(--primary);
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                transition: transform 0.4s ease-in-out;
+                z-index: 1001;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            }
+            .nav-links.active { transform: translateX(0); }
+            
+            .hamburger { display: flex; }
             /* Hamburger Animation */
             .hamburger.open span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
             .hamburger.open span:nth-child(2) { opacity: 0; }
@@ -2262,7 +2244,8 @@
             // --- 2. SPA HASH ROUTING ---
             const pages = document.querySelectorAll('.page');
             const navLinksArray = document.querySelectorAll('.nav-links a');
-            
+            const mobileNav = document.getElementById('navLinks');
+            const hamburger = document.getElementById('hamburger');
             
             function handleRoute() {
                 let hash = window.location.hash;
@@ -2315,7 +2298,10 @@
 
 
             // --- 4. MOBILE MENU TOGGLE (Fixes Mobile Nav) ---
-            
+            hamburger.addEventListener('click', () => {
+                mobileNav.classList.toggle('active');
+                hamburger.classList.toggle('open');
+            });
 
 
             // --- 5. ANIMATED COUNTERS ---
@@ -2354,13 +2340,6 @@
                         runCounters();
                     }
                 }
-                    const hamburger = document.getElementById('hamburger');
-const mobileNav = document.getElementById('navLinks');
-
-hamburger.onclick = function () {
-    mobileNav.classList.toggle('active');
-    hamburger.classList.toggle('open');
-};
             });
             setTimeout(runCounters, 500);
 
