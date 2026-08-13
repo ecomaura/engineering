@@ -1450,19 +1450,20 @@
         z-index: 1001;
     }
 
-    .nav-links.active {
-        transform: translateX(0);
-        visibility: visible;
-        opacity: 1;
-        pointer-events: auto;
-    }
-
+   .nav-links.active {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 9998 !important;
+}
     .hamburger {
-        display: flex;
-        cursor: pointer;
-        position: relative;
-        z-index: 1003;
-    }
+    display: flex !important;
+    position: relative;
+    z-index: 9999 !important;
+    cursor: pointer;
+    pointer-events: auto !important;
+}
             /* Hamburger Animation */
             .hamburger.open span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
             .hamburger.open span:nth-child(2) { opacity: 0; }
@@ -2261,18 +2262,7 @@
             // --- 2. SPA HASH ROUTING ---
             const pages = document.querySelectorAll('.page');
             const navLinksArray = document.querySelectorAll('.nav-links a');
-            const hamburger = document.getElementById('hamburger');
-const mobileNav = document.getElementById('navLinks');
-
-if (hamburger && mobileNav) {
-    hamburger.addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        mobileNav.classList.toggle('active');
-        hamburger.classList.toggle('open');
-    });
-}
+            
             
             function handleRoute() {
                 let hash = window.location.hash;
@@ -2325,10 +2315,7 @@ if (hamburger && mobileNav) {
 
 
             // --- 4. MOBILE MENU TOGGLE (Fixes Mobile Nav) ---
-            hamburger.addEventListener('click', () => {
-                mobileNav.classList.toggle('active');
-                hamburger.classList.toggle('open');
-            });
+            
 
 
             // --- 5. ANIMATED COUNTERS ---
@@ -2367,6 +2354,13 @@ if (hamburger && mobileNav) {
                         runCounters();
                     }
                 }
+                    const hamburger = document.getElementById('hamburger');
+const mobileNav = document.getElementById('navLinks');
+
+hamburger.onclick = function () {
+    mobileNav.classList.toggle('active');
+    hamburger.classList.toggle('open');
+};
             });
             setTimeout(runCounters, 500);
 
